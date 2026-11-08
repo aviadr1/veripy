@@ -210,3 +210,40 @@ def test_type_policy_drift_requires_review_and_fresh_artifacts(tmp_path):
     assert result["status"] == "contract-change", result
     assert result["contract_changes"]
     assert run_project(path, "generate", update_contracts=True)["status"] == "verified"
+
+
+@pytest.mark.requires_prover("dafny")
+def test_removed_target_leaves_no_proof_artifacts(tmp_path):
+    """Found by contracts/project_lock: a removed target's proof outlived its source."""
+    path = project(tmp_path)
+    (tmp_path / "other.py").write_text(SOURCE)
+    manifest = json.loads(path.read_text())
+    manifest["required_targets"].append("other")
+    manifest["targets"].append({"id": "other", "source": "other.py", "backend": "dafny",
+                                "functions": ["tally"], "dependencies": []})
+    path.write_text(json.dumps(manifest))
+    assert run_project(path, "generate")["status"] == "verified"
+    generated = tmp_path / "proofs/generated"
+    (tmp_path / "other.py").unlink()
+    manifest["required_targets"].remove("other")
+    manifest["targets"].pop()
+    path.write_text(json.dumps(manifest))
+    result = run_project(path, "generate", update_enrollment=True, update_contracts=True)
+    assert result["status"] == "verified", result
+    assert sorted(p.name for p in generated.iterdir()) == ["core.dfy", "core.map.json", "project.lock.json"]
+    assert run_project(path, "check")["status"] == "verified"
+
+
+@pytest.mark.requires_prover("dafny")
+def test_check_rejects_and_generate_removes_an_orphaned_proof(tmp_path):
+    """An artifact no enrolled target produces is stale, even when the lock never listed it."""
+    path = project(tmp_path)
+    assert run_project(path, "generate")["status"] == "verified"
+    generated = tmp_path / "proofs/generated"
+    (generated / "retired.dfy").write_text((generated / "core.dfy").read_text())
+    (generated / "notes.txt").write_text("kept: not a generated artifact name\n")
+    result = run_project(path, "check")
+    assert result["status"] == "stale" and result["stale_artifacts"] == ["retired.dfy"], result
+    assert run_project(path, "generate")["status"] == "verified"
+    assert not (generated / "retired.dfy").exists() and (generated / "notes.txt").exists()
+    assert run_project(path, "check")["status"] == "verified"
