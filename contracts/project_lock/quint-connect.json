@@ -33,6 +33,15 @@
     {"name": "orphaned-proofs-survive", "description": "a removed target's .dfy and .map.json stay in the artifacts directory and check still passes (the shipped behavior before the fix)"},
     {"name": "lock-forgets-contracts", "description": "the lock records no reviewed contracts, so every later generate demands review again"}
   ],
+  "bugs_found": [
+    {
+      "summary": "Removing a target left its .dfy and .map.json in the generated directory and check still passed, so a proof of deleted code looked current",
+      "fixed_in": "https://github.com/aviadr1/veripy/pull/3",
+      "found_by": "witness removedTargetLeavesNoProofTest, and independently a sampled history",
+      "regression_test": "tests/project/test_project.py::test_removed_target_leaves_no_proof_artifacts",
+      "mutant": "orphaned-proofs-survive"
+    }
+  ],
   "bounds": {"seed": 11, "max_samples": 400, "max_steps": 10, "n_traces": 16},
   "root": "../..",
   "sources": ["veripy/project.py"],
