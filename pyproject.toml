@@ -40,6 +40,11 @@ project = [
 types = [
     "basedpyright>=1.39",
 ]
+# Model-based contracts in contracts/ (see contracts/README.md).
+contracts = [
+    "pytest>=8",
+    "pytest-quint-connect==1.1.0",
+]
 dev = [
     "pytest>=8",
     "crosshair-tool>=0.0.70",

@@ -78,3 +78,6 @@ coverage.xml
 /docs-site/dist/
 /docs-site/src/content/docs/
 /docs-site/public/assets/
+
+# pytest-quint-connect traces, logs and receipts (uploaded from CI, never committed).
+.artifacts/

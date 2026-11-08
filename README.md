@@ -150,6 +150,7 @@ The [documentation index](docs/README.md) provides a reading guide.
 | Comparing versions | [Callable compatibility](docs/CALLABLE-COMPATIBILITY.md) |
 | Agents and development tools | [Embedding API](docs/AGENT-INTERFACE.md), [editor integration](docs/EDITOR.md) |
 | Research artifacts | [Case studies](case_studies/README.md), [evaluation](docs/EVALUATION.md), [archives](docs/RESEARCH-ARCHIVES.md) |
+| Model-based contracts for VeriPy itself | [Quint contracts](contracts/README.md) |
 
 ## Citation
 

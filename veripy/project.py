@@ -19,6 +19,9 @@ from veripy.verification.runner import atomic_write_text
 class ProjectError(ValueError):
     pass
 
+# The names generation writes for a target: `<id>.dfy` and `<id>.map.json`.
+_ARTIFACT_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*\.(?:dfy|map\.json)")
+
 def _json(value):
     return json.dumps(value, sort_keys=True, indent=2) + "\n"
 
@@ -311,14 +314,23 @@ def run_project(manifest, mode="check", *, update_enrollment=False, update_contr
                 report.update(status="contract-change", error="contract, proof assumptions or type policy changed; review and generate --update-contracts explicitly")
                 return report
         outputs["project.lock.json"] = _json(lock)
+        # A proof must not outlive its target: a file named like a generated
+        # artifact that no enrolled target produces is stale. Other files in
+        # the directory are left alone.
+        orphans = sorted(path.name for path in artifacts.iterdir()
+                         if path.is_file() and _ARTIFACT_NAME.fullmatch(path.name)
+                         and path.name not in outputs) if artifacts.is_dir() else []
         if mode == "check":
             stale = [name for name, text in outputs.items() if not (artifacts / name).is_file() or (artifacts / name).read_text() != text]
+            stale += orphans
             report["status"] = "stale" if stale else "verified"
             report["stale_artifacts"] = stale
         else:
             artifacts.mkdir(parents=True, exist_ok=True)
             for name, text in outputs.items():
                 atomic_write_text(artifacts / name, text)
+            for name in orphans:
+                (artifacts / name).unlink()
             report["status"] = "verified"
         report["artifacts"] = data["artifacts"]
         return report
