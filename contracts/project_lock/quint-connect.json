@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "name": "project-lock",
+  "description": "The proof-artifact lifecycle of `veripy project generate|check`: enrollment and contract review gates, failed proofs writing nothing, stale detection, and exactly the current targets' artifacts on disk.",
+  "module": "project_lock",
+  "model": "project_lock.qnt",
+  "invariant": "noOrphanArtifacts",
+  "actions": {
+    "init": "a fresh project directory with targets a and b enrolled and no generated artifacts",
+    "generate": "run_project(manifest, 'generate', update_enrollment=..., update_contracts=...)",
+    "check": "run_project(manifest, 'check')",
+    "editBody": "rewrite the target's function body (same contract)",
+    "editContract": "rewrite the target's `# @ ensures` clause",
+    "enroll": "write the target's source and add its manifest entry",
+    "unenroll": "delete the target's source and remove its manifest entry",
+    "setProof": "make the stub prover reject (or accept again) the target's proof",
+    "deleteArtifact": "delete the target's generated .dfy file",
+    "inspect": "read the artifacts directory and lock without changing them"
+  },
+  "witnesses": [
+    "freshGenerateThenCheckTest",
+    "bodyEditIsStaleUntilRegeneratedTest",
+    "contractEditNeedsReviewTest",
+    "removedTargetLeavesNoProofTest",
+    "failedProofWritesNothingTest"
+  ],
+  "mutants": [
+    {"name": "check-writes", "description": "check also writes artifacts and the lock, so CI would silently refresh a stale proof"},
+    {"name": "no-contract-review", "description": "generate accepts a changed contract without --update-contracts"},
+    {"name": "no-enrollment-review", "description": "a manifest whose enrollment differs from the lock is accepted without --update-enrollment"},
+    {"name": "ignores-failed-proof", "description": "a rejected proof does not stop the run, so generate records it as verified"},
+    {"name": "check-ignores-missing-artifact", "description": "check does not notice a deleted generated file"},
+    {"name": "orphaned-proofs-survive", "description": "a removed target's .dfy and .map.json stay in the artifacts directory and check still passes (the shipped behavior before the fix)"},
+    {"name": "lock-forgets-contracts", "description": "the lock records no reviewed contracts, so every later generate demands review again"}
+  ],
+  "bounds": {"seed": 11, "max_samples": 400, "max_steps": 10, "n_traces": 16},
+  "root": "../..",
+  "sources": ["veripy/project.py"],
+  "attest": {"package": "veripy", "source": "."},
+  "limits": [
+    "Two targets, two body and two contract versions each, at most 10 steps per sampled history.",
+    "The type gate and Dafny are stubbed in the driver: the contract checks run_project's orchestration (gates, ordering, what is written), not translation soundness or the prover.",
+    "Edits happen between runs; saves during a run (the stale-during-verification path) are covered by tests/project, not here.",
+    "Dependencies, sidecars, type-policy drift and dafny_version changes are not modeled."
+  ]
+}

@@ -1,0 +1,43 @@
+# Quint contracts: replay model-generated histories against the real code.
+# See contracts/README.md. The prover is stubbed inside the contract, so no Dafny here.
+name: Contracts
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  contracts:
+    name: Quint contracts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # the report's PR comment
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
+      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f  # v5.1.1
+        with:
+          python-version: "3.14"
+      # Any Node.js 22+. pytest-quint-connect installs its locked Quint 0.33.1 with npm on first use.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: "22"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[contracts]"
+      - name: Check the generated driver base against the model
+        run: pytest-quint-connect codegen --check contracts/project_lock/quint-connect.json
+      - name: Replay the model's histories against the code
+        run: >-
+          python -m pytest -c contracts/quint.ini contracts --quint-require-complete
+          --junitxml=contracts/.artifacts/quint-connect/junit.xml
+      - uses: gigaverse-app/pytest-quint-connect/report@e4cf3dd4da2f5113c2e7957b1345b758eaf87788  # v1.1.0
+        if: ${{ !cancelled() }}
+        with:
+          readme: contracts/README.md
+          share-totals: "false"
