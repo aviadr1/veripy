@@ -84,6 +84,9 @@ Only `verified` exits zero. Proof failures retain backend output and source maps
 `check` always verifies current source; the lock is a provenance and freshness
 record, not a cached proof verdict. It records source/dependency/contract/compiler
 and type-policy inputs. It does not claim a hermetic operating-system snapshot.
+A file in the artifact directory named like a generated artifact (`<id>.dfy`,
+`<id>.map.json`) that no enrolled target produces, such as the proof of a removed
+target, is `stale` to `check` and deleted by `generate`. Other files there are left alone.
 
 Review generated `.dfy` and `.map.json` beside the Python and proof additions.
 Retain source mutants and independent runtime observations when extending support.
